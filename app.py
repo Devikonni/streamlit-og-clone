@@ -1,36 +1,54 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
 import streamlit as st
 import pandas as pd
+import firebase_admin
+from firebase_admin import credentials, firestore
 
+# ---------------------------
+# Firebase Initialization
+# ---------------------------
+if not firebase_admin._apps:
+    # Make sure serviceAccountKey.json is in the same folder and added to .gitignore
+    cred = credentials.Certificate("serviceAccountKey.json")
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+# ---------------------------
+# Streamlit App Configuration
+# ---------------------------
 st.set_page_config(page_title="OG Clone", page_icon="🚀", layout="wide")
+st.title("🚀 Streamlit OG Clone with Firebase")
 
-st.title("🚀 Streamlit OG Clone App")
-
-st.write("Welcome! This is your OG Clone app.")
-
-# Input example
+# ---------------------------
+# User Input Section
+# ---------------------------
+st.header("User Input Form")
 username = st.text_input("Enter your username:")
-if st.button("Submit"):
-    st.success(f"Hello, {username}! This is a demo OG clone app.")
+bio = st.text_area("Enter a short bio:")
 
-# Example table
-data = {
-    "Username": ["Alice", "Bob", "Charlie"],
-    "Score": [90, 85, 78]
-}
-df = pd.DataFrame(data)
-st.dataframe(df)
-=======
->>>>>>> 4a65bdd (Add OG Clone UI components)
-import streamlit as st
+if st.button("Save to Firebase"):
+    if username and bio:
+        try:
+            doc_ref = db.collection("users").document(username)
+            doc_ref.set({"username": username, "bio": bio})
+            st.success(f"✅ Data saved for {username}!")
+        except Exception as e:
+            st.error(f"Error saving data: {e}")
+    else:
+        st.error("Please enter both username and bio.")
 
-st.title("🚀 Streamlit OG Clone - Test App")
-st.write("✅ Your Streamlit app is running successfully!")
+# ---------------------------
+# Display Stored Users
+# ---------------------------
+st.header("Stored Users from Firebase")
 
-st.write("This is just a test app. Once this works, we can add your OG Clone code here.")
-<<<<<<< HEAD
-=======
->>>>>>> 4635193 (Add OG Clone UI components)
->>>>>>> 4a65bdd (Add OG Clone UI components)
+try:
+    users_ref = db.collection("users").stream()
+    data = [{"username": doc.to_dict()["username"], "bio": doc.to_dict()["bio"]} for doc in users_ref]
+    
+    if data:
+        st.dataframe(pd.DataFrame(data))
+    else:
+        st.info("No users stored yet.")
+except Exception as e:
+    st.error(f"Error fetching users: {e}")
